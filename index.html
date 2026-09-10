@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Konversi CSV verifikasi komitmen pendidikan menjadi dokumen Microsoft Word.">
+  <title>CSV ke Word | Verifikasi Komitmen Pendidikan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=mobile-upload-2">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> Alat kerja lokal · siap GitHub Pages</div>
+      <h1>Upload dhibik<br><em>CSV-nah!</em></h1>
+      <p class="hero-copy">Ubah file verifikasi komitmen pendidikan menjadi dokumen <strong>.docx</strong> yang siap dicetak. Semua proses berlangsung langsung di browser.</p>
+      <div class="privacy-note"><span class="lock-icon">⌁</span> File Anda tidak diunggah ke server</div>
+    </section>
+
+    <section class="workspace-panel" aria-label="Konverter CSV ke Word">
+      <div class="step-heading"><span class="step-number">01</span><div><h2>Pilih file CSV</h2><p>Gunakan format CSV verifikasi yang sudah tersedia.</p></div></div>
+      <label class="drop-zone" id="dropZone" for="csvFile">
+        <input id="csvFile" type="file" accept=".csv,text/csv" multiple>
+        <span class="upload-mark">↑</span>
+        <span class="drop-title">Tarik file ke sini atau <u>pilih dari perangkat</u></span>
+        <span class="drop-meta">Format .CSV · dapat memilih banyak file sekaligus</span>
+      </label>
+      <div class="file-status" id="fileStatus" aria-live="polite">Belum ada file yang dipilih</div>
+      <div class="school-lookup" id="schoolLookup" aria-live="polite"></div>
+
+      <div class="results-panel" id="resultsPanel" hidden>
+        <div class="step-heading step-two"><span class="step-number">02</span><div><h2>Periksa data</h2>
+            <p>Pastikan data yang akan dimasukkan ke Word sudah benar. <br/> Hanya siswa dengan pendamping yang diceklist yang akan didownload</p></div></div>
+        <div class="preview-wrap" id="previewWrap"></div>
+
+        <div class="action-row">
+          <div class="record-count" id="recordCount">0 baris siap diproses</div>
+          <button class="download-button" id="downloadButton" type="button" disabled><span>↓</span> Unduh semua DOCX</button>
+        </div>
+      </div>
+      <div class="message" id="message" role="status" aria-live="polite"></div>
+    </section>
+
+    <footer><span>CSV → DOCX</span><span>Verifikasi Komitmen Pendidikan</span></footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
