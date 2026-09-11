@@ -126,7 +126,7 @@ function renderPreview() {
   previewWrap.innerHTML = state.documents.map((document, documentIndex) => {
     const pendamping = [...new Set(document.rows.map((row) => row.pendamping).filter(Boolean))].sort((first, second) => first.localeCompare(second, 'id'));
     const checks = pendamping.map((name) => `<label class="pendamping-option"><input type="checkbox" data-document-index="${documentIndex}" data-pendamping="${escapeHtml(name)}" checked><span>${escapeHtml(name)}</span></label>`).join('');
-    return `<div class="file-preview"><div class="file-preview-heading"><strong>${escapeHtml(document.fileName)}</strong><span>${escapeHtml(document.schoolInfo.school)}</span></div><div class="pendamping-filter"><span class="filter-label">Pendamping</span>${checks || '<em>Tidak ada nama pendamping</em>'}</div></div>`;
+    return `<div class="file-preview"><div class="file-preview-heading"><strong>${escapeHtml(document.fileName)}</strong><span>${escapeHtml(document.schoolInfo.school)}</span></div><div class="pendamping-filter"><span class="filter-label">Pendamping</span>${checks || '<em>Tidak ada nama pendamping</em>'}</div><button class="file-download-button" type="button" data-document-download="${documentIndex}"><span>↓</span> Unduh ${escapeHtml(document.schoolInfo.school)}</button></div>`;
   }).join('');
 }
 
@@ -138,6 +138,11 @@ previewWrap.addEventListener('change', (event) => {
   if (checkbox.checked) document.selectedPendamping.add(checkbox.dataset.pendamping);
   else document.selectedPendamping.delete(checkbox.dataset.pendamping);
   renderPreviewCounts();
+});
+
+previewWrap.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-document-download]');
+  if (button) createSingleDocx(Number(button.dataset.documentDownload), button);
 });
 
 function selectedRowCount() {
@@ -156,12 +161,7 @@ async function lookupSchool(document) {
   }
   const url = `https://referensi.data.kemendikdasmen.go.id/pendidikan/npsn/${encodeURIComponent(npsn)}`;
   try {
-    let response;
-    try {
-      response = await fetchWithTimeout(url, 7000);
-    } catch (error) {
-      response = await fetchWithTimeout(`https://r.jina.ai/http://${url.replace(/^https?:\/\//, '')}`, 15000);
-    }
+    const response = await fetchWithTimeout(`https://r.jina.ai/http://${url.replace(/^https?:\/\//, '')}`, 15000);
     if (!response.ok) throw new Error('Data sekolah tidak dapat diakses.');
     const info = parseSchoolPage(await response.text());
     if (!info.school) throw new Error('Nama sekolah tidak ditemukan pada halaman referensi.');
@@ -215,6 +215,9 @@ async function createDocx() {
   downloadButton.disabled = true; downloadButton.innerHTML = '<span>…</span> Menyiapkan Word';
   try {
     if (!state.documents.length) throw new Error('Belum ada file CSV yang siap diproses.');
+    if (selectedRowCount() === 0) throw new Error('Pilih minimal satu pendamping terlebih dahulu.');
+    const archive = new JSZip();
+    const filenameCounts = new Map();
     for (const document of state.documents) {
       const selectedRows = document.rows.filter((row) => document.selectedPendamping.has(row.pendamping));
       if (!selectedRows.length) continue;
@@ -223,11 +226,35 @@ async function createDocx() {
       state.footer = document.footer;
       state.schoolInfo = document.schoolInfo;
       const blob = await createDocxBlob();
-      downloadBlob(blob, `${outputFileName()}.docx`);
-      await new Promise((resolve) => setTimeout(resolve, 250));
+      const baseFilename = outputFileName();
+      const count = (filenameCounts.get(baseFilename) || 0) + 1;
+      filenameCounts.set(baseFilename, count);
+      archive.file(`${baseFilename}${count > 1 ? ` (${count})` : ''}.docx`, blob);
     }
+    const zipBlob = await archive.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+    downloadBlob(zipBlob, 'FORM-VERKOM-DOCX.zip');
   } catch (error) { showError(`DOCX gagal dibuat: ${error.message}`); }
-  downloadButton.disabled = false; downloadButton.innerHTML = '<span>↓</span> Unduh semua DOCX';
+  downloadButton.disabled = false; downloadButton.innerHTML = '<span>↓</span> Unduh semua .ZIP';
+}
+
+async function createSingleDocx(documentIndex, button) {
+  const document = state.documents[documentIndex];
+  if (!document) return;
+  const selectedRows = document.rows.filter((row) => document.selectedPendamping.has(row.pendamping));
+  if (!selectedRows.length) { message.textContent = 'Pilih minimal satu pendamping terlebih dahulu.'; return; }
+  const originalLabel = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = '<span>…</span> Menyiapkan DOCX';
+  try {
+    state.rows = selectedRows;
+    state.metadata = document.metadata;
+    state.footer = document.footer;
+    state.schoolInfo = document.schoolInfo;
+    const blob = await createDocxBlob();
+    downloadBlob(blob, `${outputFileName()}.docx`);
+  } catch (error) { showError(`DOCX gagal dibuat: ${error.message}`); }
+  button.disabled = false;
+  button.innerHTML = originalLabel;
 }
 
 async function createDocxBlob() {
