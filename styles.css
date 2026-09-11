@@ -69,6 +69,9 @@ h2 { margin: 2px 0 3px; font-size: 18px; letter-spacing: -.025em; }
 .file-preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .file-preview strong { overflow: hidden; color: var(--ink); text-overflow: ellipsis; white-space: nowrap; }
 .file-preview-heading span { flex: 0 0 auto; color: var(--green); font: 10px "DM Mono", monospace; }
+.file-download-button { display: inline-flex; margin-top: 13px; padding: 8px 12px; align-items: center; gap: 6px; border: 1px solid var(--pkh-blue); border-radius: 3px; background: #eff8fd; color: var(--pkh-blue); font: 700 11px Manrope, sans-serif; cursor: pointer; }
+.file-download-button:hover:not(:disabled) { background: #dff1fb; }
+.file-download-button:disabled { opacity: .65; cursor: wait; }
 .pendamping-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 13px; }
 .filter-label { margin-right: 3px; color: var(--muted); font: 10px "DM Mono", monospace; text-transform: uppercase; }
 .pendamping-option { display: inline-flex; min-height: 30px; padding: 6px 10px; align-items: center; gap: 7px; border: 1px solid #cfe5d8; border-radius: 3px; background: #f5fbf7; color: var(--green); cursor: pointer; font-size: 11px; }
@@ -101,6 +104,7 @@ footer { display: flex; justify-content: space-between; padding: 22px 6px 0; col
   .drop-title { max-width: 240px; text-align: center; line-height: 1.55; }
   .drop-title u { display: inline-block; white-space: nowrap; }
   .drop-meta { max-width: 220px; text-align: center; line-height: 1.45; }
+  .file-download-button { width: 100%; justify-content: center; }
   .drop-zone, .file-status, .preview-wrap, .action-row, .message, .school-lookup { margin-left: 0; }
   .action-row { align-items: flex-start; flex-direction: column; }
   .download-button { width: 100%; }
