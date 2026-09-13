@@ -15,3 +15,15 @@ Template harus berada di folder yang sama dengan `index.html` dan bernama `FORM.
 3. Pilih **Deploy from a branch**, branch `main`, folder `/ (root)`, lalu simpan.
 
 CSV diproses sepenuhnya di browser. Tidak ada file yang dikirim ke server aplikasi. Jika memilih beberapa CSV, satu tombol akan memulai unduhan satu DOCX untuk setiap CSV.
+
+## Log Google Sheets (opsional)
+
+1. Buat Google Sheet baru.
+2. Buka **Extensions → Apps Script**.
+3. Salin isi `apps-script.gs` ke editor Apps Script dan simpan.
+4. Pilih **Deploy → New deployment → Web app**.
+5. Pilih **Execute as: Me** dan akses **Anyone**.
+6. Salin URL Web App hasil deployment.
+7. Masukkan URL tersebut ke konstanta `LOG_ENDPOINT` di `app.js`.
+
+Log ditulis ke sheet `Log` setelah DOCX berhasil dibuat. Data yang dicatat: nama sekolah, NPSN, alamat, desa/kelurahan, kecamatan, kabupaten/kota, provinsi, dan timestamp. Template Word tetap menggunakan format alamat seperti sebelumnya.
