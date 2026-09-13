@@ -9,6 +9,7 @@ const downloadButton = document.querySelector('#downloadButton');
 const message = document.querySelector('#message');
 const schoolLookup = document.querySelector('#schoolLookup');
 const resultsPanel = document.querySelector('#resultsPanel');
+const LOG_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx-2oP7shWQLBvfsqK9y-DRRQnlC38p6PijPQY1MQQLEk4LTYVgXLdR1lxeuNom3737eQ/exec';
 
 fileInput.addEventListener('change', () => {
   if (fileInput.files.length) readFiles([...fileInput.files]);
@@ -230,6 +231,7 @@ async function createDocx() {
       const count = (filenameCounts.get(baseFilename) || 0) + 1;
       filenameCounts.set(baseFilename, count);
       archive.file(`${baseFilename}${count > 1 ? ` (${count})` : ''}.docx`, blob);
+      sendGenerationLog(document);
     }
     const zipBlob = await archive.generateAsync({ type: 'blob', compression: 'DEFLATE' });
     downloadBlob(zipBlob, 'FORM-VERKOM-DOCX.zip');
@@ -252,6 +254,7 @@ async function createSingleDocx(documentIndex, button) {
     state.schoolInfo = document.schoolInfo;
     const blob = await createDocxBlob();
     downloadBlob(blob, `${outputFileName()}.docx`);
+    sendGenerationLog(document);
   } catch (error) { showError(`DOCX gagal dibuat: ${error.message}`); }
   button.disabled = false;
   button.innerHTML = originalLabel;
@@ -349,6 +352,10 @@ function setCellText(cell, value) {
 
 function setCellValue(cell, value, prefix = '', styleCell = null) {
   const ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  if (Array.isArray(value)) {
+    setCellLines(cell, value, prefix, styleCell);
+    return;
+  }
   const texts = [...cell.getElementsByTagNameNS(ns, 't')];
   if (!texts.length) {
     const paragraph = cell.getElementsByTagNameNS(ns, 'p')[0];
@@ -370,6 +377,45 @@ function setCellValue(cell, value, prefix = '', styleCell = null) {
   const colonText = texts[colonIndex].textContent;
   texts[colonIndex].textContent = `${colonText.slice(0, colonText.indexOf(':') + 1)} ${prefix}${String(value || '')}`;
   texts.slice(colonIndex + 1).forEach((text) => { text.textContent = ''; });
+}
+
+function setCellLines(cell, values, prefix = '', styleCell = null) {
+  const ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const lines = values.map((value) => String(value || '').trim()).filter(Boolean);
+  const paragraph = cell.getElementsByTagNameNS(ns, 'p')[0];
+  if (!paragraph) return;
+  const document = paragraph.ownerDocument;
+  const existingTexts = [...cell.getElementsByTagNameNS(ns, 't')];
+  const sourceRun = styleCell && [...styleCell.getElementsByTagNameNS(ns, 'r')].find((item) => item.getElementsByTagNameNS(ns, 'rPr').length);
+  const sourceProperties = sourceRun?.getElementsByTagNameNS(ns, 'rPr')[0]
+    || styleCell?.getElementsByTagNameNS(ns, 'pPr')[0]?.getElementsByTagNameNS(ns, 'rPr')[0];
+  if (existingTexts.length) {
+    existingTexts.forEach((text) => { text.textContent = ''; });
+  }
+  const baseRun = sourceRun || [...paragraph.getElementsByTagNameNS(ns, 'r')][0];
+  if (baseRun) {
+    const baseText = baseRun.getElementsByTagNameNS(ns, 't')[0];
+    if (baseText) baseText.textContent = `${prefix}${lines.shift() || ''}`;
+    lines.forEach((line) => {
+      const run = baseRun.cloneNode(true);
+      const text = run.getElementsByTagNameNS(ns, 't')[0];
+      const breakNode = document.createElementNS(ns, 'w:br');
+      if (text) text.textContent = line;
+      run.insertBefore(breakNode, text || null);
+      paragraph.appendChild(run);
+    });
+    return;
+  }
+  lines.forEach((line, index) => {
+    const run = document.createElementNS(ns, 'w:r');
+    if (sourceProperties) run.appendChild(sourceProperties.cloneNode(true));
+    const text = document.createElementNS(ns, 'w:t');
+    text.setAttributeNS('http://www.w3.org/XML/1998/namespace', 'xml:space', 'preserve');
+    text.textContent = `${index === 0 ? prefix : ''}${line}`;
+    if (index > 0) run.insertBefore(document.createElementNS(ns, 'w:br'), run.firstChild);
+    run.appendChild(text);
+    paragraph.appendChild(run);
+  });
 }
 
 function setRowHorizontalBorder(row, value) {
@@ -444,4 +490,25 @@ function replaceParagraphText(paragraph, value, ns) {
   if (!texts.length) return;
   texts[0].textContent = value;
   texts.slice(1).forEach((text) => { text.textContent = ''; });
+}
+
+function sendGenerationLog(document) {
+  if (!LOG_ENDPOINT || !document?.schoolInfo) return;
+  const payload = new URLSearchParams({
+    school_name: document.schoolInfo.school || document.metadata.school || '',
+    npsn: document.metadata.npsn || '',
+    address: document.schoolInfo.address || '',
+    village: document.schoolInfo.village || '',
+    district: document.schoolInfo.district || '',
+    city: document.schoolInfo.city || '',
+    province: document.schoolInfo.province || '',
+    generated_at: new Date().toISOString()
+  });
+  fetch(LOG_ENDPOINT, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+    body: payload.toString(),
+    keepalive: true
+  }).catch(() => {});
 }
